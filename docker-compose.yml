@@ -6,7 +6,7 @@ volumes:
 
 services:
   turiman:
-    hostname: kresman
+    hostname: turiman
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
     volumes:
