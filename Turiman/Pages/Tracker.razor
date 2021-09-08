@@ -1,0 +1,50 @@
+@page "/tracker"
+
+@using Torman.Services
+@using BlazorTable
+@using MonoTorrent
+
+
+@implements IDisposable
+@inject ITrackerService TrackerService
+
+Status: @IsRunning
+<br />
+
+<h2>Tracker</h2>
+<Table TableItem="MonoTorrent.Tracker.ITrackerItem" Items="trackerItems" PageSize="15" SelectionType="SelectionType.Multiple" ColumnReorder="true" ShowSearchBar="true">
+    <Column TableItem="MonoTorrent.Tracker.ITrackerItem" Title="Name" Field="@(x => x.Trackable.Name)" Sortable="true" Filterable="true" Width="20%" />
+    @*<Column TableItem="MonoTorrent.Tracker.ITrackerItem" Title="Hash" Field="@(x => x.Trackable.InfoHash.ToHex())" Sortable="true" Filterable="true" Width="80%" />*@
+</Table>
+
+
+@code {
+
+    protected IList<MonoTorrent.Tracker.ITrackerItem> trackerItems = new List<MonoTorrent.Tracker.ITrackerItem>();
+    protected List<MonoTorrent.Tracker.ITrackerItem> selectedTrackerItems = new List<MonoTorrent.Tracker.ITrackerItem>();
+    protected string IsRunning => TrackerService.IsRunning;
+
+    protected override void OnInitialized()
+    {
+        //       TorrentEngineService.Notify += OnNotify;
+
+        if (trackerItems.Count == 0)
+            trackerItems = TrackerService.GetTrackerItems();
+    }
+
+    public void Dispose()
+    {
+        //TrackerService.Notify -= OnNotify;
+    }
+
+    public void OnNotify()
+    {
+        InvokeAsync(() =>
+        {
+            if (trackerItems.Count == 0)
+                trackerItems = TrackerService.GetTrackerItems();
+
+            this.StateHasChanged();
+        });
+    }
+}

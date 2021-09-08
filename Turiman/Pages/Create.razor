@@ -1,0 +1,23 @@
+@page "/create"
+
+@using Torman.Services
+
+
+@implements IDisposable
+@inject ICreateTorrentService CreateTorrentService
+
+
+@code {
+
+    protected override void OnInitialized()
+    {
+        //       TorrentEngineService.Notify += OnNotify;
+
+    }
+
+    public void Dispose()
+    {
+
+    }
+
+}

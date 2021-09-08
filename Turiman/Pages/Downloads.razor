@@ -1,0 +1,291 @@
+@page "/downloads"
+
+@using Torman.Services
+@using BlazorTable
+@using MonoTorrent.Client
+@using Turiman.Models
+@using BlazorContextMenu
+@using MonoTorrent
+@using System.Reflection
+
+@implements IDisposable
+@inject ITorrentEngineService TorrentEngineService
+
+Status: @IsRunning
+<br />
+
+<h2>Torrents</h2>
+<ContextMenu Id="dynamicTorrentMenu" OnAppearing="MenuOnAppearingTorrentHandler">
+    <Item Id="menuitem-torrent-delete" OnClick="@ItemClickTorrent" OnAppearing="ItemOnAppearingTorrentHandler">Delete</Item>
+    <Item Id="menuitem-torrent-start" OnClick="@ItemClickTorrent" OnAppearing="ItemOnAppearingTorrentHandler">Start</Item>
+    <Item Id="menuitem-torrent-stop" OnClick="@ItemClickTorrent" OnAppearing="ItemOnAppearingTorrentHandler">Stop</Item>
+    <Item Id="menuitem-torrent-pause" OnClick="@ItemClickTorrent" OnAppearing="ItemOnAppearingTorrentHandler">Pause</Item>
+    <Item Id="menuitem-torrent-check" OnClick="@ItemClickTorrent" OnAppearing="ItemOnAppearingTorrentHandler">Hash Check</Item>
+    <Seperator />
+    <Item>
+        Limit Download
+        <SubMenu>
+            <Item Id="menuitem-torrent-dl-unlimited" OnClick="@ItemClickTorrent" OnAppearing="ItemOnAppearingTorrentHandler">Unlimited</Item>
+            <Item Id="menuitem-torrent-dl-5" OnClick="@ItemClickTorrent" OnAppearing="ItemOnAppearingTorrentHandler">5 kb/s</Item>
+            <Item Id="menuitem-torrent-dl-50" OnClick="@ItemClickTorrent" OnAppearing="ItemOnAppearingTorrentHandler">50 kb/s</Item>
+            <Item Id="menuitem-torrent-dl-500" OnClick="@ItemClickTorrent" OnAppearing="ItemOnAppearingTorrentHandler">500 kb/s</Item>
+            <Item Id="menuitem-torrent-dl-5000" OnClick="@ItemClickTorrent" OnAppearing="ItemOnAppearingTorrentHandler">5000 kb/s</Item>
+        </SubMenu>
+    </Item>
+</ContextMenu>
+<ContextMenuTrigger MenuId="dynamicTorrentMenu">
+    <Table TableItem="MonoTorrent.Client.TorrentManager" Items="torrentManagers" PageSize="15" SelectionType="SelectionType.Multiple" SelectedItems="selectedTorrentManagers" ColumnReorder="true" @onclick="OnClick" ShowSearchBar="true">
+        <Column TableItem="MonoTorrent.Client.TorrentManager" Title="State" Field="@(x => x.State)" Sortable="true" Filterable="true" Width="10%" />
+        <Column TableItem="MonoTorrent.Client.TorrentManager" Title="DL" Field="@(x => x.Monitor.DownloadSpeed)" Sortable="true" Filterable="true" Width="5%">
+            <Template>
+                @SizeSuffix(context.Monitor.DownloadSpeed, 0)
+            </Template>
+        </Column>
+        <Column TableItem="MonoTorrent.Client.TorrentManager" Title="UP" Field="@(x => x.Monitor.UploadSpeed)" Sortable="true" Filterable="true" Width="5%">
+        <Template>
+            @SizeSuffix(context.Monitor.UploadSpeed, 0)
+        </Template>
+        </Column>
+        <Column TableItem="MonoTorrent.Client.TorrentManager" Title="Name" Field="@(x => x.Torrent.Name)" Sortable="true" Filterable="true" Width="40%" />
+        <Column TableItem="MonoTorrent.Client.TorrentManager" Title="Progress" Field="@(x => x.Progress)" Sortable="true" Filterable="true" Width="40%">
+            <Template>
+                <RadzenProgressBar Value="context.Progress" ShowValue="false" Mode="ProgressBarMode.Determinate" Style="margin-bottom: 5px" />
+            </Template>
+        </Column>
+    </Table>
+</ContextMenuTrigger>
+
+<h3>Files</h3>
+<ContextMenu Id="dynamicFileMenu" OnAppearing="MenuOnAppearingFileHandler">
+    <Item Id="menuitem-file-dnd" OnClick="@ItemClickFlie" OnAppearing="ItemOnAppearingFileHandler">Do not download</Item>
+    <Item Id="menuitem-file-p1" OnClick="@ItemClickFlie" OnAppearing="ItemOnAppearingFileHandler">Set High Priority</Item>
+    <Item Id="menuitem-file-p2" OnClick="@ItemClickFlie" OnAppearing="ItemOnAppearingFileHandler">Set Normal Priority</Item>
+    <Item Id="menuitem-file-p3" OnClick="@ItemClickFlie" OnAppearing="ItemOnAppearingFileHandler">Set Low Priority</Item>
+</ContextMenu>
+<ContextMenuTrigger MenuId="dynamicFileMenu">
+    <Table TableItem="MonoTorrent.Client.ITorrentFileInfo" Items="finfo" PageSize="15" SelectionType="SelectionType.Multiple" SelectedItems="selectedFinfos" ColumnReorder="true" ShowSearchBar="true">
+        <Column TableItem="MonoTorrent.Client.ITorrentFileInfo" Title="Priority" Field="@(x => x.Priority)" Sortable="true" Filterable="true" Width="10%" />
+        <Column TableItem="MonoTorrent.Client.ITorrentFileInfo" Title="Name" Field="@(x => x.Path)" Sortable="true" Filterable="true" Width="40%"/>
+        <Column TableItem="MonoTorrent.Client.ITorrentFileInfo" Title="Size" Field="@(x => x.Length)" Sortable="true" Filterable="true" Width="10%">
+            <Template>
+                @SizeSuffix(context.Length, 2)
+            </Template>
+        </Column>
+        <Column TableItem="MonoTorrent.Client.ITorrentFileInfo" Title="Progress" Field="@(x => x.BitField.PercentComplete)" Sortable="true" Filterable="true" Width="40%">
+            <Template>
+                <RadzenProgressBar Value="context.BitField.PercentComplete" ShowValue="false" Mode="ProgressBarMode.Determinate" Style="margin-bottom: 5px" />
+            </Template>
+        </Column>
+    </Table>
+</ContextMenuTrigger>
+
+<h3>Peers</h3>
+<Table TableItem="PeerInfo" Items="peers" PageSize="15" SelectionType="SelectionType.Multiple" ColumnReorder="true" ShowSearchBar="true">
+    <Column TableItem="PeerInfo" Title="Client" Field="@(x => x.ClientApp)" Sortable="true" Filterable="true" Width="10%" />
+    <Column TableItem="PeerInfo" Title="DL" Field="@(x => x.DL)" Sortable="true" Filterable="true" Width="5%">
+        <Template>
+            @SizeSuffix(context.DL, 0)
+        </Template>
+    </Column>
+    <Column TableItem="PeerInfo" Title="UP" Field="@(x => x.UP)" Sortable="true" Filterable="true" Width="5%">
+        <Template>
+            @SizeSuffix(context.UP, 0)
+        </Template>
+    </Column>
+    <Column TableItem="PeerInfo" Title="Desc" Field="@(x => x.Desc)" Sortable="true" Filterable="true" Width="15%">
+        <Template>
+            <img src="@context.Flag" width="20" alt="" /> @context.Desc
+        </Template>
+    </Column>
+    <Column TableItem="PeerInfo" Title="Encryption" Field="@(x => x.Encryption)" Sortable="true" Filterable="true" Width="15%" />
+    <Column TableItem="PeerInfo" Title="Seeder" Field="@(x => x.IsSeeder)" Sortable="true" Filterable="true" Width="10%" />
+    <Column TableItem="PeerInfo" Title="Progress" Field="@(x => x.Progress)" Sortable="true" Filterable="true" Width="40%">
+        <Template>
+            <RadzenProgressBar Value="context.Progress" ShowValue="false" Mode="ProgressBarMode.Determinate" Style="margin-bottom: 5px" />
+        </Template>
+    </Column>
+</Table>
+
+
+@code {
+
+    protected IList<MonoTorrent.Client.TorrentManager> torrentManagers = new List<MonoTorrent.Client.TorrentManager>();
+    protected List<MonoTorrent.Client.TorrentManager> selectedTorrentManagers = new List<MonoTorrent.Client.TorrentManager>();
+    protected IList<MonoTorrent.Client.ITorrentFileInfo> finfo = new List<ITorrentFileInfo>();
+    protected List<MonoTorrent.Client.ITorrentFileInfo> selectedFinfos = new List<ITorrentFileInfo>();
+    protected IList<PeerInfo> peers = new List<PeerInfo>();
+    protected bool IsRunning => TorrentEngineService.IsRunning;
+
+
+    protected override void OnInitialized()
+    {
+        TorrentEngineService.Notify += OnNotify;
+
+        if (torrentManagers.Count == 0)
+            torrentManagers = TorrentEngineService.GetTorrents();
+    }
+
+    public void Dispose()
+    {
+        TorrentEngineService.Notify -= OnNotify;
+    }
+
+    public void OnNotify()
+    {
+        InvokeAsync(() =>
+        {
+            if (torrentManagers.Count == 0)
+                torrentManagers = TorrentEngineService.GetTorrents();
+
+            this.StateHasChanged();
+        });
+    }
+
+
+    void ItemClickTorrent(ItemClickEventArgs e)
+    {
+        switch (e.MenuItem.Id)
+        {
+            case "menuitem-torrent-delete":
+                foreach (var tm in selectedTorrentManagers)
+                    TorrentEngineService.RemoveTorrent(tm);
+                break;
+            case "menuitem-torrent-stop":
+                foreach (var tm in selectedTorrentManagers)
+                    tm.StopAsync();
+                break;
+            case "menuitem-torrent-pause":
+                foreach (var tm in selectedTorrentManagers)
+                    tm.PauseAsync();
+                break;
+            case "menuitem-torrent-start":
+                foreach (var tm in selectedTorrentManagers)
+                    tm.StartAsync();
+                break;
+            case "menuitem-torrent-check":
+                foreach (var tm in selectedTorrentManagers)
+                    tm.HashCheckAsync(true);
+                break;
+            case "menuitem-torrent-dl-unlimited":
+                foreach (var tm in selectedTorrentManagers)
+                    tm.UpdateSettingsAsync(TorrentEngineService.CreateSettingsDlSpeed(0, tm.Settings));
+                break;
+            case "menuitem-torrent-dl-5":
+                foreach (var tm in selectedTorrentManagers)
+                    tm.UpdateSettingsAsync(TorrentEngineService.CreateSettingsDlSpeed(5, tm.Settings));
+                break;
+            case "menuitem-torrent-dl-50":
+                foreach (var tm in selectedTorrentManagers)
+                    tm.UpdateSettingsAsync(TorrentEngineService.CreateSettingsDlSpeed(50, tm.Settings));
+
+                break;
+            case "menuitem-torrent-dl-500":
+                foreach (var tm in selectedTorrentManagers)
+                    tm.UpdateSettingsAsync(TorrentEngineService.CreateSettingsDlSpeed(500, tm.Settings));
+
+                break;
+            case "menuitem-torrent-dl-5000":
+                foreach (var tm in selectedTorrentManagers)
+                    tm.UpdateSettingsAsync(TorrentEngineService.CreateSettingsDlSpeed(5000, tm.Settings));
+
+                break;
+        }
+
+        this.StateHasChanged();
+    }
+
+    void ItemClickFlie(ItemClickEventArgs e)
+    {
+        switch (e.MenuItem.Id)
+        {
+            case "menuitem-file-dnd":
+                foreach (var fi in selectedFinfos)
+                    selectedTorrentManagers.First().SetFilePriorityAsync(fi, Priority.DoNotDownload);
+                break;
+            case "menuitem-file-p1":
+                foreach (var fi in selectedFinfos)
+                    selectedTorrentManagers.First().SetFilePriorityAsync(fi, Priority.High);
+                break;
+            case "menuitem-file-p2":
+                foreach (var fi in selectedFinfos)
+                    selectedTorrentManagers.First().SetFilePriorityAsync(fi, Priority.Normal);
+                break;
+            case "menuitem-file-p3":
+                foreach (var fi in selectedFinfos)
+                    selectedTorrentManagers.First().SetFilePriorityAsync(fi, Priority.Low);
+                break;
+        }
+
+        this.StateHasChanged();
+    }
+
+    void MenuOnAppearingTorrentHandler(MenuAppearingEventArgs e)
+    {
+        e.PreventShow = selectedTorrentManagers.Count == 0;
+    }
+
+    void ItemOnAppearingTorrentHandler(ItemAppearingEventArgs e)
+    {
+        switch (e.MenuItem.Id)
+        {
+            case "menuitem-torrent-delete":
+                e.IsEnabled = selectedTorrentManagers.Count == 1;
+                break;
+        }
+    }
+
+    void MenuOnAppearingFileHandler(MenuAppearingEventArgs e)
+    {
+        e.PreventShow = selectedFinfos.Count == 0;
+    }
+
+    void ItemOnAppearingFileHandler(ItemAppearingEventArgs e)
+    {
+        switch (e.MenuItem.Id)
+        {
+            case "menuitem-edit":
+                e.IsEnabled = selectedFinfos.Count == 1;
+                break;
+            case "menuitem-delete":
+                e.IsEnabled = selectedFinfos.Count >= 1;
+                break;
+        }
+    }
+
+    public async void OnClick()
+    {
+        this.StateHasChanged();
+        var selitem = selectedTorrentManagers.FirstOrDefault();
+        if (selitem == null)
+            return;
+
+        finfo = selitem.Files.ToList();
+        var os = await selitem.GetPeersAsync();
+        peers.Clear();
+        foreach (var ps in os.Select(t => new PeerInfo(t)))
+        {
+            ps.Flag = TorrentEngineService.GetFlag(ps.Desc);
+            peers.Add(ps);
+        }
+    }
+
+    static readonly string[] SizeSuffixes =
+    { "bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB" };
+    static string SizeSuffix(Int64 value, int decimalPlaces = 1)
+    {
+        if (decimalPlaces < 0) { throw new ArgumentOutOfRangeException("decimalPlaces"); }
+        if (value < 0) { return "-" + SizeSuffix(-value, decimalPlaces); }
+        if (value == 0) { return string.Format("{0:n" + decimalPlaces + "} bytes", 0); }
+        int mag = (int)Math.Log(value, 1024);
+        decimal adjustedSize = (decimal)value / (1L << (mag * 10));
+        if (Math.Round(adjustedSize, decimalPlaces) >= 1000)
+        {
+            mag += 1;
+            adjustedSize /= 1024;
+        }
+
+        return string.Format("{0:n" + decimalPlaces + "} {1}",
+            adjustedSize,
+            SizeSuffixes[mag]);
+    }
+}

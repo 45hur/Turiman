@@ -1,0 +1,20 @@
+version: '3.4'
+
+volumes:
+  v-torr: {}
+  v-comp: {}
+
+services:
+  turiman:
+    hostname: kresman
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    volumes:
+      - v-torr:/var/torr
+      - v-comp:/var/comp
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5000:80"
+      - "8234:8234"

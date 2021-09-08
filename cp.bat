@@ -1,0 +1,1 @@
+docker cp test.torrent turiman_turiman_1:/var/torr
