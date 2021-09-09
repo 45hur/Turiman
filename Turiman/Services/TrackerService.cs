@@ -34,7 +34,7 @@ namespace Torman.Services
             this.configuration = configuration;
 
             var os = "Win";
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 os = "Unix";
             }

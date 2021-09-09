@@ -43,7 +43,7 @@ namespace Torman.Services
             engine.StatsUpdate += EngineOnStatsUpdate;
 
             var os = "Win";
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 os = "Unix";
             }
@@ -57,6 +57,8 @@ namespace Torman.Services
             {
                 DownloadTorrent(file);
             }
+
+
 
             geolocationApi = new IPGeolocationAPI(configuration.GetValue<string>("Geolocator:Key"));
 
@@ -82,6 +84,7 @@ namespace Torman.Services
         private void DownloadTorrent(string path)
         {
             var t = Torrent.Load(path);
+
             var ts = new TorrentSettings();
             engine.AddAsync(
                 t,

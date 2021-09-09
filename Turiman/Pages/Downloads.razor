@@ -259,7 +259,15 @@ Status: @IsRunning
         if (selitem == null)
             return;
 
-        finfo = selitem.Files.ToList();
+        if (selitem.Files != null)
+        {
+            finfo = selitem.Files.ToList();
+        }
+        else
+        {
+            finfo.Clear();
+        }
+        
         var os = await selitem.GetPeersAsync();
         peers.Clear();
         foreach (var ps in os.Select(t => new PeerInfo(t)))
